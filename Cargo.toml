@@ -1,0 +1,15 @@
+[package]
+name = "pixiv"
+version = "0.1.0"
+description = "Unofficial rust library for the Pixiv API."
+keywords = ["pixiv", "pixiv-api"]
+repository = "https://github.com/fairingrey/rustpixiv"
+authors = ["Allen Bui <allenbui94@gmail.com>"]
+license = "MIT"
+
+[dependencies]
+reqwest = "0.8.5"
+serde = "*"
+serde_json = "*"
+chrono = "*"
+log = "*"
