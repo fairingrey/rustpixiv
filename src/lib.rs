@@ -114,8 +114,8 @@ const CLIENT_SECRET: &'static str = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
 
 /// Used to authenticate to the Pixiv servers and construct Pixiv requests through methods creating `PixivRequestBuilder`.
 #[derive(Debug, Clone)]
-pub struct Pixiv<'a> {
-    client: &'a Client,
+pub struct Pixiv {
+    client: Client,
     access_token: String,
     refresh_token: String,
 }
@@ -131,7 +131,7 @@ pub struct PixivRequest {
 /// Pixiv request builder. You can create this using any of the provided methods in `Pixiv`, or through `PixivRequestBuilder::new`.
 #[derive(Debug, Clone)]
 pub struct PixivRequestBuilder<'a> {
-    pixiv: &'a Pixiv<'a>,
+    pixiv: &'a Pixiv,
     request: PixivRequest,
     params: HashMap<&'a str, Cow<'a, str>>,
 }
@@ -272,11 +272,11 @@ impl SearchOrder {
     }
 }
 
-impl<'a> Pixiv<'a> {
+impl Pixiv {
     /// Creates a new Pixiv struct.
     pub fn new(client: &Client) -> Pixiv {
         Pixiv {
-            client: client,
+            client: client.clone(),
             access_token: String::default(),
             refresh_token: String::default(),
         }
@@ -763,7 +763,7 @@ impl<'a> Pixiv<'a> {
     /// * `include_stats` (default: `true`)
     /// * `include_sanity_level` (default: `true`)
     /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
-    pub fn search_works<V>(&'a self, query: V) -> PixivRequestBuilder<'a>
+    pub fn search_works<'a, V>(&'a self, query: V) -> PixivRequestBuilder<'a>
         where Cow<'a, str>: From<V>
     {
         let url = "https://public-api.secure.pixiv.net/v1/search/works.json";
@@ -884,7 +884,7 @@ impl<'a> PixivRequestBuilder<'a> {
     /// Create a new `PixivRequestBuilder`.
     /// Functions in `Pixiv` expedite a lot of this for you, so using this directly isn't recommended unless you know what you want.
     pub fn new(
-        pixiv: &'a Pixiv<'a>,
+        pixiv: &'a Pixiv,
         access_token: String,
         method: Method,
         url: Url,
