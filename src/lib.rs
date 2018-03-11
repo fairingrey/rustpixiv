@@ -132,9 +132,7 @@ pub struct PixivRequest {
 #[derive(Debug, Clone)]
 pub struct PixivRequestBuilder<'a> {
     client: &'a Client,
-    method: Method,
-    url: Url,
-    headers: Headers,
+    request: PixivRequest,
     params: HashMap<&'a str, Cow<'a, str>>,
 }
 
@@ -894,11 +892,9 @@ impl<'a> PixivRequestBuilder<'a> {
             token: access_token,
         }));
         PixivRequestBuilder {
-            client: client,
-            method: method,
-            url: url,
-            headers: headers,
-            params: params,
+            client,
+            request: PixivRequest::new(method, url, headers),
+            params,
         }
     }
     /// Sets the `page` param.
@@ -988,24 +984,20 @@ impl<'a> PixivRequestBuilder<'a> {
         self
     }
     fn url_with_params(&self) -> Url {
-        Url::parse_with_params(self.url.as_str(), &self.params).unwrap()
+        Url::parse_with_params(self.request.url.as_str(), &self.params).unwrap()
     }
     /// Returns a `PixivRequest` which can be inspected and/or executed with `Pixiv::execute()`.
     pub fn build(self) -> PixivRequest {
-        PixivRequest {
-            method: self.method,
-            url: self.url_with_params(),
-            headers: self.headers,
-        }
+        self.request
     }
     /// Sends a request. This function consumes `self`.
     pub fn send(self) -> Result<Response, reqwest::Error> {
         let url = self.url_with_params();
         trace!("Request URL: {}", url);
-        match self.method {
-            Method::GET => self.client.get(url).headers(self.headers).send(),
-            Method::POST => self.client.post(url).headers(self.headers).send(),
-            Method::DELETE => self.client.delete(url).headers(self.headers).send(),
+        match self.request.method {
+            Method::GET => self.client.get(url).headers(self.request.headers).send(),
+            Method::POST => self.client.post(url).headers(self.request.headers).send(),
+            Method::DELETE => self.client.delete(url).headers(self.request.headers).send(),
         }
     }
 }
