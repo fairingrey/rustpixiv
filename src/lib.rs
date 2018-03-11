@@ -131,7 +131,7 @@ pub struct PixivRequest {
 /// Pixiv request builder. You can create this using any of the provided methods in `Pixiv`, or through `PixivRequestBuilder::new`.
 #[derive(Debug, Clone)]
 pub struct PixivRequestBuilder<'a> {
-    client: &'a Client,
+    pixiv: &'a Pixiv<'a>,
     request: PixivRequest,
     params: HashMap<&'a str, Cow<'a, str>>,
 }
@@ -366,7 +366,7 @@ impl<'a> Pixiv<'a> {
         let url = "https://public-api.secure.pixiv.net/v1.1/bad_words.json";
         let url = Url::parse(&url).unwrap();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -391,7 +391,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -421,7 +421,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -444,7 +444,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -470,7 +470,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -489,7 +489,7 @@ impl<'a> Pixiv<'a> {
             .chain(Some(("work_id", work_id.to_string().into())))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::POST,
             url,
@@ -510,7 +510,7 @@ impl<'a> Pixiv<'a> {
             .chain(Some(("ids", comma_delimited(work_ids).into())))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::DELETE,
             url,
@@ -538,7 +538,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -560,7 +560,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -579,7 +579,7 @@ impl<'a> Pixiv<'a> {
             .chain(Some(("target_user_id", user_id.to_string().into())))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::POST,
             url,
@@ -600,7 +600,7 @@ impl<'a> Pixiv<'a> {
             .chain(Some(("delete_ids", comma_delimited(user_ids).into())))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::DELETE,
             url,
@@ -631,7 +631,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -660,7 +660,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -685,7 +685,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -708,7 +708,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -743,7 +743,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -785,7 +785,7 @@ impl<'a> Pixiv<'a> {
             .chain(Some(("q", query.into())))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -816,7 +816,7 @@ impl<'a> Pixiv<'a> {
             .map(|&(k, v)| (k, v.into()))
             .collect();
         PixivRequestBuilder::new(
-            self.client,
+            self,
             self.access_token.to_owned(),
             Method::GET,
             url,
@@ -873,13 +873,18 @@ impl PixivRequest {
     pub fn headers_mut(&mut self) -> &mut Headers {
         &mut self.headers
     }
+    fn extend_query_pairs<I, K, V>(&mut self, params: I)
+        where I: IntoIterator, I::Item: Borrow<(K, V)>, K: AsRef<str>, V: AsRef<str>
+    {
+        self.url.query_pairs_mut().extend_pairs(params);
+    }
 }
 
 impl<'a> PixivRequestBuilder<'a> {
     /// Create a new `PixivRequestBuilder`.
     /// Functions in `Pixiv` expedite a lot of this for you, so using this directly isn't recommended unless you know what you want.
     pub fn new(
-        client: &'a Client,
+        pixiv: &'a Pixiv<'a>,
         access_token: String,
         method: Method,
         url: Url,
@@ -892,7 +897,7 @@ impl<'a> PixivRequestBuilder<'a> {
             token: access_token,
         }));
         PixivRequestBuilder {
-            client,
+            pixiv,
             request: PixivRequest::new(method, url, headers),
             params,
         }
@@ -983,22 +988,15 @@ impl<'a> PixivRequestBuilder<'a> {
         self.params.insert(key, value.into());
         self
     }
-    fn url_with_params(&self) -> Url {
-        Url::parse_with_params(self.request.url.as_str(), &self.params).unwrap()
-    }
     /// Returns a `PixivRequest` which can be inspected and/or executed with `Pixiv::execute()`.
     pub fn build(self) -> PixivRequest {
         self.request
     }
     /// Sends a request. This function consumes `self`.
-    pub fn send(self) -> Result<Response, reqwest::Error> {
-        let url = self.url_with_params();
-        trace!("Request URL: {}", url);
-        match self.request.method {
-            Method::GET => self.client.get(url).headers(self.request.headers).send(),
-            Method::POST => self.client.post(url).headers(self.request.headers).send(),
-            Method::DELETE => self.client.delete(url).headers(self.request.headers).send(),
-        }
+    pub fn send(mut self) -> Result<Response, reqwest::Error> {
+        self.request.extend_query_pairs(&self.params);
+        trace!("Request URL: {}", self.request.url);
+        self.pixiv.execute(self.request)
     }
 }
 
