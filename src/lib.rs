@@ -274,6 +274,7 @@ impl SearchOrder {
 
 impl Pixiv {
     /// Creates a new Pixiv struct.
+    #[inline]
     pub fn new(client: &Client) -> Pixiv {
         Pixiv {
             client: client.clone(),
@@ -842,6 +843,7 @@ impl Pixiv {
 impl PixivRequest {
     /// Create a new `PixivRequest`.
     /// A `PixivRequest` is returned when calling `build()` on `PixivRequestBuilder`, so it is recommended you use that instead.
+    #[inline]
     pub fn new(method: Method, url: Url, headers: Headers) -> PixivRequest {
         PixivRequest {
             method: method,
@@ -850,26 +852,32 @@ impl PixivRequest {
         }
     }
     /// Get the method.
+    #[inline]
     pub fn method(&self) -> &Method {
         &self.method
     }
     /// Get a mutable reference to the method.
+    #[inline]
     pub fn method_mut(&mut self) -> &mut Method {
         &mut self.method
     }
     /// Get the url.
+    #[inline]
     pub fn url(&self) -> &Url {
         &self.url
     }
     /// Get a mutable reference to the url.
+    #[inline]
     pub fn url_mut(&mut self) -> &Url {
         &mut self.url
     }
     /// Get the headers.
+    #[inline]
     pub fn headers(&self) -> &Headers {
         &self.headers
     }
     /// Get a mutable reference to the headers.
+    #[inline]
     pub fn headers_mut(&mut self) -> &mut Headers {
         &mut self.headers
     }
@@ -903,30 +911,37 @@ impl<'a> PixivRequestBuilder<'a> {
         }
     }
     /// Sets the `page` param.
+    #[inline]
     pub fn page(self, value: usize) -> PixivRequestBuilder<'a> {
         self.raw_param("page", value.to_string())
     }
     /// Sets the `per_page` param.
+    #[inline]
     pub fn per_page(self, value: usize) -> PixivRequestBuilder<'a> {
         self.raw_param("value", value.to_string())
     }
     /// Sets the `max_id` param.
+    #[inline]
     pub fn max_id(self, value: usize) -> PixivRequestBuilder<'a> {
         self.raw_param("max_id", value.to_string())
     }
     /// Sets the `image_sizes` param. Available types: `px_128x128`, `small`, `medium`, `large`, `px_480mw`
+    #[inline]
     pub fn image_sizes(self, values: &[&str]) -> PixivRequestBuilder<'a> {
         self.raw_param("image_sizes", comma_delimited::<&str,_,_>(values))
     }
     /// Sets the `profile_image_sizes` param. Available types: `px_170x170,px_50x50`
+    #[inline]
     pub fn profile_image_sizes(self, values: &[&str]) -> PixivRequestBuilder<'a> {
         self.raw_param("profile_image_sizes", comma_delimited::<&str,_,_>(values))
     }
     /// Sets the `publicity` param. Must be a value of enum `Publicity`.
+    #[inline]
     pub fn publicity(self, value: Publicity) -> PixivRequestBuilder<'a> {
         self.raw_param("publicity", value.as_str())
     }
     /// Sets the `show_r18` param. `true` means R-18 works will be included.
+    #[inline]
     pub fn show_r18(self, value: bool) -> PixivRequestBuilder<'a> {
         match value {
             true => self.raw_param("show_r18", "1"),
@@ -934,6 +949,7 @@ impl<'a> PixivRequestBuilder<'a> {
         }
     }
     /// Sets the `include_stats` param.
+    #[inline]
     pub fn include_stats(self, value: bool) -> PixivRequestBuilder<'a> {
         match value {
             true => self.raw_param("include_stats", "true"),
@@ -941,6 +957,7 @@ impl<'a> PixivRequestBuilder<'a> {
         }
     }
     /// Sets the `include_sanity_level` param.
+    #[inline]
     pub fn include_sanity_level(self, value: bool) -> PixivRequestBuilder<'a> {
         match value {
             true => self.raw_param("include_sanity_level", "true"),
@@ -948,6 +965,7 @@ impl<'a> PixivRequestBuilder<'a> {
         }
     }
     /// Sets the ranking mode in the case of a `ranking()` call. Must be a value of enum `RankingMode`.
+    #[inline]
     pub fn ranking_mode(self, value: RankingMode) -> PixivRequestBuilder<'a> {
         self.raw_param("mode", value.as_str())
     }
@@ -961,14 +979,17 @@ impl<'a> PixivRequestBuilder<'a> {
         self.raw_param::<Cow<_>>("date", value)
     }
     /// Sets the `period` param in the case of a `search_works()` call. Must be a value of enum `SearchPeriod`.
+    #[inline]
     pub fn search_period(self, value: SearchPeriod) -> PixivRequestBuilder<'a> {
         self.raw_param("period", value.as_str())
     }
     /// Sets the `mode` param in the case of a `search_works()` call. Must be a value of enum `SearchMode`.
+    #[inline]
     pub fn search_mode(self, value: SearchMode) -> PixivRequestBuilder<'a> {
         self.raw_param("mode", value.as_str())
     }
     /// Sets the `order` param in the case of a `search_works()` call. Must be a value of enum `SearchOrder`.
+    #[inline]
     pub fn search_order(self, value: SearchOrder) -> PixivRequestBuilder<'a> {
         self.raw_param("order", value.as_str())
     }
@@ -979,6 +1000,7 @@ impl<'a> PixivRequestBuilder<'a> {
         self.raw_param("sort", value)
     }
     /// Sets the `types` param in the case of a `search_works()` call. Available values: `illustration`, `manga`, `ugoira`.
+    #[inline]
     pub fn search_types(self, values: &[&str]) -> PixivRequestBuilder<'a> {
         self.raw_param("types", comma_delimited::<&str,_,_>(values))
     }
@@ -989,6 +1011,7 @@ impl<'a> PixivRequestBuilder<'a> {
         self
     }
     /// Returns a `PixivRequest` which can be inspected and/or executed with `Pixiv::execute()`.
+    #[inline]
     pub fn build(self) -> PixivRequest {
         self.request
     }
