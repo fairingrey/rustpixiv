@@ -109,8 +109,8 @@ use reqwest::Url;
 use serde_json::Value;
 
 // This is taken from the Android app, don't worry about it. It's not really "compromisable", to some degree.
-const CLIENT_ID: &'static str = "MOBrBDS8blbauoSck0ZfDbtuzpyT";
-const CLIENT_SECRET: &'static str = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
+const CLIENT_ID: &str = "MOBrBDS8blbauoSck0ZfDbtuzpyT";
+const CLIENT_SECRET: &str = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
 
 /// Used to authenticate to the Pixiv servers and construct Pixiv requests through methods creating `PixivRequestBuilder`.
 #[derive(Debug, Clone)]
@@ -120,7 +120,7 @@ pub struct Pixiv {
     refresh_token: String,
 }
 
-/// Pixiv request. You can create this using `PixivRequestBuilder::Build`. This is for if you wish to inspect the request before sending.
+/// Pixiv request. You can create this using `PixivRequestBuilder::build`. This is for if you wish to inspect the request before sending.
 #[derive(Debug, Clone)]
 pub struct PixivRequest {
     method: Method,
@@ -153,9 +153,9 @@ pub enum Publicity {
 
 impl Publicity {
     fn as_str(&self) -> &'static str {
-        match self {
-            &Publicity::Public => "public",
-            &Publicity::Private => "private",
+        match *self {
+            Publicity::Public => "public",
+            Publicity::Private => "private",
         }
     }
 }
@@ -171,11 +171,11 @@ pub enum RankingType {
 
 impl RankingType {
     fn as_str(&self) -> &'static str {
-        match self {
-            &RankingType::All => "all",
-            &RankingType::Illust => "illust",
-            &RankingType::Manga => "manga",
-            &RankingType::Ugoira => "ugoira",
+        match *self {
+            RankingType::All => "all",
+            RankingType::Illust => "illust",
+            RankingType::Manga => "manga",
+            RankingType::Ugoira => "ugoira",
         }
     }
 }
@@ -199,19 +199,19 @@ pub enum RankingMode {
 
 impl RankingMode {
     fn as_str(&self) -> &'static str {
-        match self {
-            &RankingMode::Daily => "daily",
-            &RankingMode::Weekly => "weekly",
-            &RankingMode::Monthly => "monthly",
-            &RankingMode::Rookie => "rookie",
-            &RankingMode::Original => "original",
-            &RankingMode::Male => "male",
-            &RankingMode::Female => "female",
-            &RankingMode::DailyR18 => "daily_r18",
-            &RankingMode::WeeklyR18 => "weekly_r18",
-            &RankingMode::MaleR18 => "male_r18",
-            &RankingMode::FemaleR18 => "female_r18",
-            &RankingMode::R18G => "r18g",
+        match *self {
+            RankingMode::Daily => "daily",
+            RankingMode::Weekly => "weekly",
+            RankingMode::Monthly => "monthly",
+            RankingMode::Rookie => "rookie",
+            RankingMode::Original => "original",
+            RankingMode::Male => "male",
+            RankingMode::Female => "female",
+            RankingMode::DailyR18 => "daily_r18",
+            RankingMode::WeeklyR18 => "weekly_r18",
+            RankingMode::MaleR18 => "male_r18",
+            RankingMode::FemaleR18 => "female_r18",
+            RankingMode::R18G => "r18g",
         }
     }
 }
@@ -227,11 +227,11 @@ pub enum SearchPeriod {
 
 impl SearchPeriod {
     fn as_str(&self) -> &'static str {
-        match self {
-            &SearchPeriod::All => "all",
-            &SearchPeriod::Day => "day",
-            &SearchPeriod::Week => "week",
-            &SearchPeriod::Month => "month",
+        match *self {
+            SearchPeriod::All => "all",
+            SearchPeriod::Day => "day",
+            SearchPeriod::Week => "week",
+            SearchPeriod::Month => "month",
         }
     }
 }
@@ -247,11 +247,11 @@ pub enum SearchMode {
 
 impl SearchMode {
     fn as_str(&self) -> &'static str {
-        match self {
-            &SearchMode::Text => "text",
-            &SearchMode::Tag => "tag",
-            &SearchMode::ExactTag => "exact_tag",
-            &SearchMode::Caption => "caption",
+        match *self {
+            SearchMode::Text => "text",
+            SearchMode::Tag => "tag",
+            SearchMode::ExactTag => "exact_tag",
+            SearchMode::Caption => "caption",
         }
     }
 }
@@ -265,9 +265,9 @@ pub enum SearchOrder {
 
 impl SearchOrder {
     fn as_str(&self) -> &'static str {
-        match self {
-            &SearchOrder::Descending => "desc",
-            &SearchOrder::Ascending => "asc",
+        match *self {
+            SearchOrder::Descending => "desc",
+            SearchOrder::Ascending => "asc",
         }
     }
 }
@@ -294,7 +294,7 @@ impl Pixiv {
         data.insert("username", username);
         data.insert("password", password);
 
-        let mut res = self.send_auth_request(data)
+        let mut res = self.send_auth_request(&data)
             .expect("Error occured while requesting token.");
 
         match res.status() {
@@ -330,7 +330,7 @@ impl Pixiv {
         data.insert("grant_type", "refresh_token");
         data.insert("refresh_token", refresh_clone.as_str());
 
-        let mut res = self.send_auth_request(data)
+        let mut res = self.send_auth_request(&data)
             .expect("Error occured while requesting token.");
 
         match res.status() {
@@ -354,7 +354,7 @@ impl Pixiv {
         };
     }
     // private helper method
-    fn send_auth_request(&self, data: HashMap<&str, &str>) -> Result<Response, reqwest::Error> {
+    fn send_auth_request(&self, data: &HashMap<&str, &str>) -> Result<Response, reqwest::Error> {
         self.client
             .post("https://oauth.secure.pixiv.net/auth/token")
             .form(&data)
@@ -827,16 +827,12 @@ impl Pixiv {
     /// Executes a given `PixivRequest`.
     pub fn execute(&self, request: PixivRequest) -> Result<Response, reqwest::Error> {
         match request.method {
-            Method::GET => self.client.get(request.url).headers(request.headers).send(),
-            Method::POST => self.client
-                .post(request.url)
-                .headers(request.headers)
-                .send(),
-            Method::DELETE => self.client
-                .delete(request.url)
-                .headers(request.headers)
-                .send(),
+            Method::GET => self.client.get(request.url),
+            Method::POST => self.client.post(request.url),
+            Method::DELETE => self.client.delete(request.url),
         }
+            .headers(request.headers)
+            .send()
     }
 }
 
@@ -845,11 +841,7 @@ impl PixivRequest {
     /// A `PixivRequest` is returned when calling `build()` on `PixivRequestBuilder`, so it is recommended you use that instead.
     #[inline]
     pub fn new(method: Method, url: Url, headers: Headers) -> PixivRequest {
-        PixivRequest {
-            method: method,
-            url: url,
-            headers: headers,
-        }
+        PixivRequest { method, url, headers }
     }
     /// Get the method.
     #[inline]
