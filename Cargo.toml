@@ -1,6 +1,6 @@
 [package]
 name = "pixiv"
-version = "0.1.0"
+version = "0.1.1"
 description = "Unofficial rust library for the Pixiv API."
 keywords = ["pixiv", "pixiv-api"]
 repository = "https://github.com/fairingrey/rustpixiv"
