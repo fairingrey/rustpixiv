@@ -336,7 +336,7 @@ impl Pixiv {
             }
         }
 
-        let mut json_response: Value = serde_json::from_str(&res.text().unwrap()).unwrap();
+        let mut json_response: Value = res.json().unwrap();
 
         self.access_token = match json_response["response"]["access_token"].take() {
             Value::String(s) => s,
@@ -374,7 +374,7 @@ impl Pixiv {
             }
         }
 
-        let mut json_response: Value = serde_json::from_str(&res.text().unwrap()).unwrap();
+        let mut json_response: Value = res.json().unwrap();
 
         println!("{}", json_response);
 
