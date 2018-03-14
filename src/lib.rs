@@ -599,7 +599,7 @@ impl Pixiv {
             params,
         )
     }
-    /// Used to build a request to unfollow a user on your account.
+    /// Used to build a request to unfollow users on your account.
     /// # Request Transforms
     /// * `publicity` (default: `public`)
     pub fn following_remove<B, I>(&self, user_ids: I) -> PixivRequestBuilder
@@ -983,7 +983,7 @@ impl<'a> PixivRequestBuilder<'a> {
     pub fn build(self) -> PixivRequest {
         self.request
     }
-    /// Sends a request. This function consumes `self`.
+    /// Sends the request. This function consumes `self`.
     pub fn send(mut self) -> Result<Response, reqwest::Error> {
         self.request.extend_query_pairs(&self.params);
         trace!("Request URL: {}", self.request.url);
