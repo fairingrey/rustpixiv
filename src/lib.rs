@@ -4,18 +4,15 @@
 //!
 //! This crate uses the crates `reqwest` and `serde_json`.
 //!
-//! ## Logging In
+//! ## Authentication
 //!
-//! To log in, you need to create a new `Pixiv` struct and pass in a `reqwest::Client` as such:
+//! To authenticate, you need to create a new `Pixiv` struct and pass in a `reqwest::Client`, then login with your username and password.
 //!
 //! ```rust,no_run
 //! # extern crate pixiv;
 //! # extern crate reqwest;
-//! # extern crate serde;
-//! # extern crate serde_json;
 //! # use pixiv::Pixiv;
 //! # use reqwest::Client;
-//! # use serde_json::Value;
 //! # fn main() {
 //!     let client = Client::new();
 //!
@@ -26,6 +23,25 @@
 //!
 //! If and when your access token does expire, you should use the `refresh_auth()` or `login()` methods.
 //!
+//! Alternatively, if you have your access token and/or request token cached somwhere for you to reuse:
+//!
+//! ```rust,no_run
+//! # extern crate pixiv;
+//! # extern crate reqwest;
+//! # use pixiv::Pixiv;
+//! # use reqwest::Client;
+//! # fn main() {
+//!     let client = Client::new();
+//!
+//!     let mut pixiv: Pixiv = Pixiv::new(&client);
+//!
+//!     let my_access_token = String::from("supersecret");
+//!     *pixiv.access_token_mut() = my_access_token;
+//! # }
+//! ```
+//!
+//! Accessor methods such as `access_token()` and `refresh_token()` are provided for these purposes.
+//!
 //! ## Making a Request
 //!
 //! This crate relies on the builder pattern for using and modifying a request. A typical request may look like this:
@@ -33,7 +49,6 @@
 //! ```rust,no_run
 //! # extern crate pixiv;
 //! # extern crate reqwest;
-//! # extern crate serde;
 //! # extern crate serde_json;
 //! # use pixiv::Pixiv;
 //! # use reqwest::Client;
@@ -56,7 +71,6 @@
 //! ```rust,no_run
 //! # extern crate pixiv;
 //! # extern crate reqwest;
-//! # extern crate serde;
 //! # extern crate serde_json;
 //! # use pixiv::Pixiv;
 //! # use reqwest::Client;
