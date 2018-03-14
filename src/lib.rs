@@ -91,6 +91,9 @@ extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 
+#[cfg(test)]
+extern crate kankyo;
+
 #[macro_use]
 extern crate log;
 
@@ -989,7 +992,6 @@ where
 mod tests {
 
     use super::*;
-    use std::env; // for debugging, PIXIV_ID and PIXIV_PW need to be set in env
 
     #[test]
     fn test_login() {
@@ -997,12 +999,14 @@ mod tests {
 
         let mut pixiv: Pixiv = Pixiv::new(&client);
 
+        kankyo::load().unwrap();
+
         pixiv
             .login(
-                &env::var("PIXIV_ID").expect("PIXIV_ID isn't set!"),
-                &env::var("PIXIV_PW").expect("PIXIV_PW isn't set!"),
+                &kankyo::key("PIXIV_ID").expect("PIXIV_ID isn't set!"),
+                &kankyo::key("PIXIV_PW").expect("PIXIV_PW isn't set!"),
             )
-            .expect("Failed to log in");
+            .expect("Failed to log in.");
     }
 
     #[test]
@@ -1011,12 +1015,14 @@ mod tests {
 
         let mut pixiv: Pixiv = Pixiv::new(&client);
 
+        kankyo::load().unwrap();
+
         pixiv
             .login(
-                &env::var("PIXIV_ID").expect("PIXIV_ID isn't set!"),
-                &env::var("PIXIV_PW").expect("PIXIV_PW isn't set!"),
+                &kankyo::key("PIXIV_ID").expect("PIXIV_ID isn't set!"),
+                &kankyo::key("PIXIV_PW").expect("PIXIV_PW isn't set!"),
             )
-            .expect("Failed to log in");
+            .expect("Failed to log in.");
 
         pixiv
             .refresh_auth()
@@ -1029,12 +1035,14 @@ mod tests {
 
         let mut pixiv: Pixiv = Pixiv::new(&client);
 
+        kankyo::load().unwrap();
+
         pixiv
             .login(
-                &env::var("PIXIV_ID").expect("PIXIV_ID isn't set!"),
-                &env::var("PIXIV_PW").expect("PIXIV_PW isn't set!"),
+                &kankyo::key("PIXIV_ID").expect("PIXIV_ID isn't set!"),
+                &kankyo::key("PIXIV_PW").expect("PIXIV_PW isn't set!"),
             )
-            .expect("Failed to log in");
+            .expect("Failed to log in.");
 
         let bad_words: Value = pixiv
             .bad_words()
@@ -1052,12 +1060,14 @@ mod tests {
 
         let mut pixiv: Pixiv = Pixiv::new(&client);
 
+        kankyo::load().unwrap();
+
         pixiv
             .login(
-                &env::var("PIXIV_ID").expect("PIXIV_ID isn't set!"),
-                &env::var("PIXIV_PW").expect("PIXIV_PW isn't set!"),
+                &kankyo::key("PIXIV_ID").expect("PIXIV_ID isn't set!"),
+                &kankyo::key("PIXIV_PW").expect("PIXIV_PW isn't set!"),
             )
-            .expect("Failed to log in");
+            .expect("Failed to log in.");
 
         let work: Value = pixiv
             .work(66024340)
@@ -1075,12 +1085,14 @@ mod tests {
 
         let mut pixiv: Pixiv = Pixiv::new(&client);
 
+        kankyo::load().unwrap();
+
         pixiv
             .login(
-                &env::var("PIXIV_ID").expect("PIXIV_ID isn't set!"),
-                &env::var("PIXIV_PW").expect("PIXIV_PW isn't set!"),
+                &kankyo::key("PIXIV_ID").expect("PIXIV_ID isn't set!"),
+                &kankyo::key("PIXIV_PW").expect("PIXIV_PW isn't set!"),
             )
-            .expect("Failed to log in");
+            .expect("Failed to log in.");
 
         let following_works: Value = pixiv
             .user(6996493)
@@ -1098,12 +1110,14 @@ mod tests {
 
         let mut pixiv: Pixiv = Pixiv::new(&client);
 
+        kankyo::load().unwrap();
+
         pixiv
             .login(
-                &env::var("PIXIV_ID").expect("PIXIV_ID isn't set!"),
-                &env::var("PIXIV_PW").expect("PIXIV_PW isn't set!"),
+                &kankyo::key("PIXIV_ID").expect("PIXIV_ID isn't set!"),
+                &kankyo::key("PIXIV_PW").expect("PIXIV_PW isn't set!"),
             )
-            .expect("Failed to log in");
+            .expect("Failed to log in.");
 
         let following_works: Value = pixiv
             .following_works()
@@ -1143,6 +1157,6 @@ mod tests {
 
         let mut pixiv: Pixiv = Pixiv::new(&client);
 
-        pixiv.login("", "").expect("Failed to log in");
+        pixiv.login("", "").expect("Failed to log in.");
     }
 }
