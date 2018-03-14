@@ -388,6 +388,26 @@ impl Pixiv {
         };
         Ok(())
     }
+    /// Get the access token.
+    #[inline]
+    pub fn access_token(&self) -> &String {
+        &self.access_token
+    }
+    /// Get a mutable reference to the access token.
+    #[inline]
+    pub fn access_token_mut(&mut self) -> &mut String {
+        &mut self.access_token
+    }
+    /// Get the refresh token.
+    #[inline]
+    pub fn refresh_token(&self) -> &String {
+        &self.refresh_token
+    }
+    /// Get a mutable reference to the refresh token.
+    #[inline]
+    pub fn refresh_token_mut(&mut self) -> &mut String {
+        &mut self.refresh_token
+    }
     // private helper method
     fn send_auth_request(&self, data: &HashMap<&str, &str>) -> Result<Response, reqwest::Error> {
         self.client
