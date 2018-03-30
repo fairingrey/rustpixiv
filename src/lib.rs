@@ -390,8 +390,6 @@ impl Pixiv {
 
         let mut json_response: Value = res.json().unwrap();
 
-        println!("{}", json_response);
-
         self.access_token = match json_response["response"]["access_token"].take() {
             Value::String(s) => s,
             _ => panic!("Failed to get access token."),
