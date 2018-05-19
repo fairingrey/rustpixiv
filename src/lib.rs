@@ -992,14 +992,16 @@ impl<'a> PixivRequestBuilder<'a> {
     }
     /// Returns a `PixivRequest` which can be inspected and/or executed with `Pixiv::execute()`.
     #[inline]
-    pub fn build(self) -> PixivRequest {
+    pub fn build(mut self) -> PixivRequest {
+        self.request.extend_query_pairs(&self.params);
         self.request
     }
     /// Sends the request. This function consumes `self`.
-    pub fn send(mut self) -> Result<Response, reqwest::Error> {
-        self.request.extend_query_pairs(&self.params);
-        trace!("Request URL: {}", self.request.url);
-        self.pixiv.execute(self.request)
+    pub fn send(self) -> Result<Response, reqwest::Error> {
+        let pixiv = self.pixiv;
+        let req = self.build();
+        trace!("Request URL: {}", req.url);
+        pixiv.execute(req)
     }
 }
 
