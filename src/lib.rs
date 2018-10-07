@@ -51,15 +51,16 @@
 //! # extern crate reqwest;
 //! # extern crate serde_json;
 //! # use pixiv::client::Pixiv;
+//! # use pixiv::PixivRequestBuilder;
 //! # use reqwest::Client;
 //! # use serde_json::Value;
 //! # fn main() {
 //! #   let client = Client::new();
 //! #   let mut pixiv: Pixiv = Pixiv::new(&client);
 //! #   pixiv.login("username", "password");
+//!     let request = PixivRequestBuilder::work(66024340).build();
 //!     let work: Value = pixiv
-//!         .work(66024340)
-//!         .send()
+//!         .execute(request)
 //!         .expect("Request failed.")
 //!         .json()
 //!         .expect("Failed to parse as json.");
@@ -73,17 +74,19 @@
 //! # extern crate reqwest;
 //! # extern crate serde_json;
 //! # use pixiv::client::Pixiv;
+//! # use pixiv::PixivRequestBuilder;
 //! # use reqwest::Client;
 //! # use serde_json::Value;
 //! # fn main() {
 //! #   let client = Client::new();
 //! #   let mut pixiv: Pixiv = Pixiv::new(&client);
 //! #   pixiv.login("username", "password");
-//!     let following_works: Value = pixiv
-//!        .following_works()
+//!     let request = PixivRequestBuilder::following_works()
 //!        .image_sizes(&["large"])
 //!        .include_sanity_level(false)
-//!        .send()
+//!        .build();
+//!     let following_works: Value = pixiv
+//!        .execute(request)
 //!        .expect("Request failed.")
 //!        .json()
 //!        .expect("Failed to parse as json.");
@@ -101,6 +104,7 @@
 //! * More API support (although pixiv doesn't document their public API anywhere to my knowledge...)
 
 extern crate chrono;
+#[cfg(feature = "reqwest-client")]
 pub extern crate reqwest;
 pub extern crate http;
 extern crate serde;
@@ -109,9 +113,6 @@ extern crate serde_json;
 #[cfg(test)]
 extern crate kankyo;
 
-#[macro_use]
-extern crate log;
-
 use std::borrow::{Borrow, Cow};
 use std::collections::HashMap;
 use std::error::Error;
@@ -119,11 +120,11 @@ use std::fmt;
 
 use chrono::naive::NaiveDate;
 
-use reqwest::Response;
 pub use http::{header, HeaderMap, Method};
 use reqwest::Url;
 
 mod utils;
+#[cfg(feature = "reqwest-client")]
 pub mod client;
 
 use utils::comma_delimited;
@@ -131,15 +132,14 @@ use utils::comma_delimited;
 /// Pixiv request. You can create this using `PixivRequestBuilder::build`. This is for if you wish to inspect the request before sending.
 #[derive(Debug, Clone)]
 pub struct PixivRequest {
-    method: Method,
-    url: Url,
-    headers: HeaderMap,
+    pub method: Method,
+    pub url: Url,
+    pub headers: HeaderMap,
 }
 
 /// Pixiv request builder. You can create this using any of the provided methods in `Pixiv`, or through `PixivRequestBuilder::new`.
 #[derive(Debug, Clone)]
 pub struct PixivRequestBuilder<'a> {
-    pixiv: &'a client::Pixiv,
     request: PixivRequest,
     params: HashMap<&'a str, Cow<'a, str>>,
 }
@@ -348,55 +348,49 @@ impl PixivRequest {
 impl<'a> PixivRequestBuilder<'a> {
     /// Create a new `PixivRequestBuilder`.
     /// Functions in `Pixiv` expedite a lot of this for you, so using this directly isn't recommended unless you know what you want.
-    pub fn new(
-        pixiv: &'a client::Pixiv,
-        method: Method,
-        url: Url,
-        params: HashMap<&'a str, Cow<'a, str>>,
-    ) -> PixivRequestBuilder<'a> {
+    pub fn new(method: Method, url: Url, params: HashMap<&'a str, Cow<'a, str>>) -> Self {
         // set headers
         let mut headers = HeaderMap::new();
         headers.insert(header::REFERER, header::HeaderValue::from_static("http://spapi.pixiv.net/"));
 
         PixivRequestBuilder {
-            pixiv,
             request: PixivRequest::new(method, url, headers),
             params,
         }
     }
     /// Sets the `page` param.
     #[inline]
-    pub fn page(self, value: usize) -> PixivRequestBuilder<'a> {
+    pub fn page(self, value: usize) -> Self {
         self.raw_param("page", value.to_string())
     }
     /// Sets the `per_page` param.
     #[inline]
-    pub fn per_page(self, value: usize) -> PixivRequestBuilder<'a> {
+    pub fn per_page(self, value: usize) -> Self {
         self.raw_param("value", value.to_string())
     }
     /// Sets the `max_id` param.
     #[inline]
-    pub fn max_id(self, value: usize) -> PixivRequestBuilder<'a> {
+    pub fn max_id(self, value: usize) -> Self {
         self.raw_param("max_id", value.to_string())
     }
     /// Sets the `image_sizes` param. Available types: `px_128x128`, `small`, `medium`, `large`, `px_480mw`
     #[inline]
-    pub fn image_sizes(self, values: &[&str]) -> PixivRequestBuilder<'a> {
+    pub fn image_sizes(self, values: &[&str]) -> Self {
         self.raw_param("image_sizes", comma_delimited::<&str, _, _>(values))
     }
     /// Sets the `profile_image_sizes` param. Available types: `px_170x170,px_50x50`
     #[inline]
-    pub fn profile_image_sizes(self, values: &[&str]) -> PixivRequestBuilder<'a> {
+    pub fn profile_image_sizes(self, values: &[&str]) -> Self {
         self.raw_param("profile_image_sizes", comma_delimited::<&str, _, _>(values))
     }
     /// Sets the `publicity` param. Must be a value of enum `Publicity`.
     #[inline]
-    pub fn publicity(self, value: Publicity) -> PixivRequestBuilder<'a> {
+    pub fn publicity(self, value: Publicity) -> Self {
         self.raw_param("publicity", value.as_str())
     }
     /// Sets the `show_r18` param. `true` means R-18 works will be included.
     #[inline]
-    pub fn show_r18(self, value: bool) -> PixivRequestBuilder<'a> {
+    pub fn show_r18(self, value: bool) -> Self {
         if value {
             self.raw_param("show_r18", "1")
         } else {
@@ -405,7 +399,7 @@ impl<'a> PixivRequestBuilder<'a> {
     }
     /// Sets the `include_stats` param.
     #[inline]
-    pub fn include_stats(self, value: bool) -> PixivRequestBuilder<'a> {
+    pub fn include_stats(self, value: bool) -> Self {
         if value {
             self.raw_param("include_stats", "true")
         } else {
@@ -414,7 +408,7 @@ impl<'a> PixivRequestBuilder<'a> {
     }
     /// Sets the `include_sanity_level` param.
     #[inline]
-    pub fn include_sanity_level(self, value: bool) -> PixivRequestBuilder<'a> {
+    pub fn include_sanity_level(self, value: bool) -> Self {
         if value {
             self.raw_param("include_sanity_level", "true")
         } else {
@@ -423,11 +417,11 @@ impl<'a> PixivRequestBuilder<'a> {
     }
     /// Sets the ranking mode in the case of a `ranking()` call. Must be a value of enum `RankingMode`.
     #[inline]
-    pub fn ranking_mode(self, value: RankingMode) -> PixivRequestBuilder<'a> {
+    pub fn ranking_mode(self, value: RankingMode) -> Self {
         self.raw_param("mode", value.as_str())
     }
     /// Sets the `date` param. Must be a valid date in the form of `%Y-%m-%d`, e.g. `2018-2-22`.
-    pub fn date<V>(self, value: V) -> PixivRequestBuilder<'a>
+    pub fn date<V>(self, value: V) -> Self
     where
         Cow<'a, str>: From<V>,
     {
@@ -438,21 +432,21 @@ impl<'a> PixivRequestBuilder<'a> {
     }
     /// Sets the `period` param in the case of a `search_works()` call. Must be a value of enum `SearchPeriod`.
     #[inline]
-    pub fn search_period(self, value: SearchPeriod) -> PixivRequestBuilder<'a> {
+    pub fn search_period(self, value: SearchPeriod) -> Self {
         self.raw_param("period", value.as_str())
     }
     /// Sets the `mode` param in the case of a `search_works()` call. Must be a value of enum `SearchMode`.
     #[inline]
-    pub fn search_mode(self, value: SearchMode) -> PixivRequestBuilder<'a> {
+    pub fn search_mode(self, value: SearchMode) -> Self {
         self.raw_param("mode", value.as_str())
     }
     /// Sets the `order` param in the case of a `search_works()` call. Must be a value of enum `SearchOrder`.
     #[inline]
-    pub fn search_order(self, value: SearchOrder) -> PixivRequestBuilder<'a> {
+    pub fn search_order(self, value: SearchOrder) -> Self {
         self.raw_param("order", value.as_str())
     }
     /// Sets the `sort` param in the case of a `search_works()` call. Not sure if there's any variations here, but this function is included for convenience.
-    pub fn search_sort<V>(self, value: V) -> PixivRequestBuilder<'a>
+    pub fn search_sort<V>(self, value: V) -> Self
     where
         Cow<'a, str>: From<V>,
     {
@@ -460,28 +454,369 @@ impl<'a> PixivRequestBuilder<'a> {
     }
     /// Sets the `types` param in the case of a `search_works()` call. Available values: `illustration`, `manga`, `ugoira`.
     #[inline]
-    pub fn search_types(self, values: &[&str]) -> PixivRequestBuilder<'a> {
+    pub fn search_types(self, values: &[&str]) -> Self {
         self.raw_param("types", comma_delimited::<&str, _, _>(values))
     }
-    fn raw_param<V>(mut self, key: &'a str, value: V) -> PixivRequestBuilder<'a>
+    fn raw_param<V>(mut self, key: &'a str, value: V) -> Self
     where
         Cow<'a, str>: From<V>,
     {
         self.params.insert(key, value.into());
         self
     }
+
+    /// Used to build a request to retrive `bad_words.json`.
+    /// # Request Transforms
+    /// None
+    pub fn bad_words() -> Self {
+        let url = "https://public-api.secure.pixiv.net/v1.1/bad_words.json";
+        let url = Url::parse(&url).unwrap();
+        PixivRequestBuilder::new(
+            Method::GET,
+            url,
+            HashMap::default(),
+        )
+    }
+    /// Used to build a request to retrieve information of a work.
+    /// # Request Transforms
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    /// * `include_stats` (default: `true`)
+    pub fn work(illust_id: usize) -> Self {
+        let url = format!(
+            "https://public-api.secure.pixiv.net/v1/works/{}.json",
+            illust_id
+        );
+        let extra_params = [
+            ("image_sizes", "px_128x128,small,medium,large,px_480mw"),
+            ("include_stats", "true"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to retrieve information of a user.
+    /// # Request Transforms
+    /// * `profile_image_sizes` (default: `px_170x170,px_50x50`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    /// * `include_stats` (default: `true`)
+    pub fn user(user_id: usize) -> Self {
+        let url = format!(
+            "https://public-api.secure.pixiv.net/v1/users/{}.json",
+            user_id
+        );
+        let extra_params = [
+            ("profile_image_sizes", "px_170x170,px_50x50"),
+            ("image_sizes", "px_128x128,small,medium,large,px_480mw"),
+            ("include_stats", "1"),
+            ("include_profile", "1"),
+            ("include_workspace", "1"),
+            ("include_contacts", "1"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to retrieve your account's feed.
+    /// # Request Transforms
+    /// * `show_r18` (default: `true`)
+    /// * `max_id`
+    pub fn feed() -> Self {
+        let url = "https://public-api.secure.pixiv.net/v1/me/feeds.json";
+        let extra_params = [
+            ("relation", "all"),
+            ("type", "touch_nottext"),
+            ("show_r18", "1"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to retrieve works favorited on your account.
+    /// # Request Transforms
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `50`)
+    /// * `publicity` (default: `public`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    pub fn favorite_works() -> Self {
+        let url = "https://public-api.secure.pixiv.net/v1/me/favorite_works.json";
+        let extra_params = [
+            ("page", "1"),
+            ("per_page", "50"),
+            ("publicity", "public"),
+            ("image_sizes", "px_128x128,px_480mw,large"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to favorite a work on your account.
+    /// # Request Transforms
+    /// * `publicity` (default: `public`)
+    pub fn favorite_work_add(work_id: usize) -> Self {
+        let url = "https://public-api.secure.pixiv.net/v1/me/favorite_works.json";
+        let extra_params = [("publicity", "public")];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params
+            .iter()
+            .map(|&(k, v)| (k, v.into()))
+            .chain(Some(("work_id", work_id.to_string().into())))
+            .collect();
+        PixivRequestBuilder::new(Method::POST, url, params)
+    }
+    /// Used to build a request to remove favorited works on your account.
+    /// # Request Transforms
+    /// * `publicity` (default: `public`)
+    pub fn favorite_works_remove<B, I>(work_ids: I) -> Self
+    where
+        B: Borrow<usize>,
+        I: IntoIterator<Item = B>,
+    {
+        let url = "https://public-api.secure.pixiv.net/v1/me/favorite_works.json";
+        let extra_params = [("publicity", "public")];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params
+            .iter()
+            .map(|&(k, v)| (k, v.into()))
+            .chain(Some(("ids", comma_delimited(work_ids).into())))
+            .collect();
+        PixivRequestBuilder::new(Method::DELETE, url, params)
+    }
+    /// Used to build a request to retrieve newest works from whoever you follow on your account.
+    /// # Request Transforms
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `30`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    /// * `include_stats` (default: `true`)
+    /// * `include_sanity_level` (default: `true`)
+    pub fn following_works() -> Self {
+        let url = "https://public-api.secure.pixiv.net/v1/me/following/works.json";
+        let extra_params = [
+            ("page", "1"),
+            ("per_page", "30"),
+            ("image_sizes", "px_128x128,px480mw,large"),
+            ("include_stats", "true"),
+            ("include_sanity_level", "true"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to retrieve users you follow.
+    /// # Request Transforms
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `30`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    /// * `include_stats` (default: `true`)
+    /// * `include_sanity_level` (default: `true`)
+    pub fn following() -> Self {
+        let url = "https://public-api.secure.pixiv.net/v1/me/following.json";
+        let extra_params = [("page", "1"), ("per_page", "30"), ("publicity", "public")];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to follow a user on your account.
+    /// # Request Transforms
+    /// * `publicity` (default: `public`)
+    pub fn following_add(user_id: usize) -> Self {
+        let url = "https://public-api.secure.pixiv.net/v1/me/favorite-users.json";
+        let extra_params = [("publicity", "public")];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params
+            .iter()
+            .map(|&(k, v)| (k, v.into()))
+            .chain(Some(("target_user_id", user_id.to_string().into())))
+            .collect();
+        PixivRequestBuilder::new(Method::POST, url, params)
+    }
+    /// Used to build a request to unfollow users on your account.
+    /// # Request Transforms
+    /// * `publicity` (default: `public`)
+    pub fn following_remove<B, I>(user_ids: I) -> Self
+    where
+        B: Borrow<usize>,
+        I: IntoIterator<Item = B>,
+    {
+        let url = "https://public-api.secure.pixiv.net/v1/me/favorite-users.json";
+        let extra_params = [("publicity", "public")];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params
+            .iter()
+            .map(|&(k, v)| (k, v.into()))
+            .chain(Some(("delete_ids", comma_delimited(user_ids).into())))
+            .collect();
+        PixivRequestBuilder::new(Method::DELETE, url, params)
+    }
+    /// Used to build a request to retrive a list of works submitted by a user.
+    /// # Request Transforms
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `30`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    /// * `include_stats` (default: `true`)
+    /// * `include_sanity_level` (default: `true`)
+    pub fn user_works(user_id: usize) -> Self {
+        let url = format!(
+            "https://public-api.secure.pixiv.net/v1/users/{}/works.json",
+            user_id
+        );
+        let extra_params = [
+            ("page", "1"),
+            ("per_page", "30"),
+            ("image_sizes", "px_128x128,px480mw,large"),
+            ("include_stats", "true"),
+            ("include_sanity_level", "true"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to retrive a list of works favorited by a user.
+    /// # Request Transforms
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `30`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    /// * `include_sanity_level` (default: `true`)
+    pub fn user_favorite_works(user_id: usize) -> Self {
+        let url = format!(
+            "https://public-api.secure.pixiv.net/v1/users/{}/favorite_works.json",
+            user_id
+        );
+        let extra_params = [
+            ("page", "1"),
+            ("per_page", "30"),
+            ("image_sizes", "px_128x128,px480mw,large"),
+            ("include_sanity_level", "true"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to retrive a user's feed.
+    /// # Request Transforms
+    /// * `show_r18` (default: `true`)
+    pub fn user_feed(user_id: usize) -> Self {
+        let url = format!(
+            "https://public-api.secure.pixiv.net/v1/users/{}/feeds.json",
+            user_id
+        );
+        let extra_params = [
+            ("relation", "all"),
+            ("type", "touch_nottext"),
+            ("show_r18", "1"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to retrieve users a user follows.
+    /// # Request Transforms
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `30`)
+    /// * `max_id`
+    pub fn user_following(user_id: usize) -> Self {
+        let url = format!(
+            "https://public-api.secure.pixiv.net/v1/users/{}/following.json",
+            user_id
+        );
+        let extra_params = [("page", "1"), ("per_page", "30")];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to retrieve a list of ranking posts.
+    /// # Request Transforms
+    /// * `ranking_mode` (default: `RankingMode::Daily`)
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `50`)
+    /// * `include_stats` (default: `true`)
+    /// * `include_sanity_level` (default: `true`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    /// * `profile_image_sizes` (default: `px_170x170,px_50x50`)
+    pub fn ranking(ranking_type: RankingType) -> Self {
+        let url = format!(
+            "https://public-api.secure.pixiv.net/v1/ranking/{}.json",
+            ranking_type.as_str()
+        );
+        let extra_params = [
+            ("mode", "daily"),
+            ("page", "1"),
+            ("per_page", "50"),
+            ("include_stats", "True"),
+            ("include_sanity_level", "True"),
+            ("image_sizes", "px_128x128,small,medium,large,px_480mw"),
+            ("profile_image_sizes", "px_170x170,px_50x50"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+    /// Used to build a request to search for posts on a query.
+    /// # Request Transforms
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `30`)
+    /// * `date`
+    /// * `search_mode` (default: `SearchMode::Text`)
+    /// * `search_period` (default: `SearchPeriod::All`)
+    /// * `search_order` (default: `desc`)
+    /// * `search_sort` (default: `date`)
+    /// * `search_types` (default: `illustration,manga,ugoira`)
+    /// * `include_stats` (default: `true`)
+    /// * `include_sanity_level` (default: `true`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    pub fn search_works<V>(query: V) -> PixivRequestBuilder<'a>
+    where
+        Cow<'a, str>: From<V>,
+    {
+        let url = "https://public-api.secure.pixiv.net/v1/search/works.json";
+        let extra_params = [
+            ("page", "1"),
+            ("per_page", "30"),
+            ("mode", "text"),
+            ("period", "all"),
+            ("order", "desc"),
+            ("sort", "date"),
+            ("types", "illustration,manga,ugoira"),
+            ("include_stats", "true"),
+            ("include_sanity_level", "true"),
+            ("image_sizes", "px_128x128,px480mw,large"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params
+            .iter()
+            .map(|&(k, v)| (k, v.into()))
+            .chain(Some(("q", query.into())))
+            .collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
+
+    /// Used to build a request to retrieve the latest submitted works by everyone.
+    /// # Request Transforms
+    /// * `page` (default: `1`)
+    /// * `per_page` (default: `50`)
+    /// * `date`
+    /// * `include_stats` (default: `true`)
+    /// * `include_sanity_level` (default: `true`)
+    /// * `image_sizes` (default: `px_128x128,small,medium,large,px_480mw`)
+    /// * `profile_image_sizes` (default: `px_170x170,px_50x50`)
+    pub fn latest_works() -> Self {
+        let url = "https://public-api.secure.pixiv.net/v1/works.json";
+        let extra_params = [
+            ("page", "1"),
+            ("per_page", "30"),
+            ("include_stats", "true"),
+            ("include_sanity_level", "true"),
+            ("image_sizes", "px_128x128,px480mw,large"),
+            ("profile_image_sizes", "px_170x170,px_50x50"),
+        ];
+        let url = Url::parse(&url).unwrap();
+        let params = extra_params.iter().map(|&(k, v)| (k, v.into())).collect();
+        PixivRequestBuilder::new(Method::GET, url, params)
+    }
     /// Returns a `PixivRequest` which can be inspected and/or executed with `Pixiv::execute()`.
     #[inline]
     pub fn build(mut self) -> PixivRequest {
         self.request.extend_query_pairs(&self.params);
         self.request
-    }
-    /// Sends the request. This function consumes `self`.
-    pub fn send(self) -> Result<Response, reqwest::Error> {
-        let pixiv = self.pixiv;
-        let req = self.build();
-        trace!("Request URL: {}", req.url);
-        pixiv.execute(req)
     }
 }
 
@@ -544,9 +879,8 @@ mod tests {
             )
             .expect("Failed to log in.");
 
-        let bad_words: Value = pixiv
-            .bad_words()
-            .send()
+        let request = PixivRequestBuilder::bad_words().build();
+        let bad_words: Value = pixiv.execute(request)
             .expect("Request failed.")
             .json()
             .expect("Failed to parse as json.");
@@ -569,9 +903,8 @@ mod tests {
             )
             .expect("Failed to log in.");
 
-        let work: Value = pixiv
-            .work(66024340)
-            .send()
+        let request = PixivRequestBuilder::work(66024340).build();
+        let work: Value = pixiv.execute(request)
             .expect("Request failed.")
             .json()
             .expect("Failed to parse as json.");
@@ -594,9 +927,9 @@ mod tests {
             )
             .expect("Failed to log in.");
 
+        let request = PixivRequestBuilder::user(6996493).build();
         let following_works: Value = pixiv
-            .user(6996493)
-            .send()
+            .execute(request)
             .expect("Request failed.")
             .json()
             .expect("Failed to parse as json.");
@@ -619,11 +952,12 @@ mod tests {
             )
             .expect("Failed to log in.");
 
-        let following_works: Value = pixiv
-            .following_works()
+        let request = PixivRequestBuilder::following_works()
             .image_sizes(&["large"])
             .include_sanity_level(false)
-            .send()
+            .build();
+        let following_works: Value = pixiv
+            .execute(request)
             .expect("Request failed.")
             .json()
             .expect("Failed to parse as json.");
@@ -634,20 +968,17 @@ mod tests {
     // Test that generic method calls compile properly.
     #[test]
     fn test_into_iterator() {
-        let client = Client::new();
-        let pixiv = Pixiv::new(&client);
-
         let slice: &[usize] = &[0, 1, 2];
         let vec = slice.to_owned();
         let iter = vec.clone().into_iter().chain(Some(3));
 
-        pixiv.favorite_works_remove(slice);
-        pixiv.favorite_works_remove(vec.clone());
-        pixiv.favorite_works_remove(iter.clone());
+        PixivRequestBuilder::favorite_works_remove(slice);
+        PixivRequestBuilder::favorite_works_remove(vec.clone());
+        PixivRequestBuilder::favorite_works_remove(iter.clone());
 
-        pixiv.following_remove(slice);
-        pixiv.following_remove(vec);
-        pixiv.following_remove(iter);
+        PixivRequestBuilder::following_remove(slice);
+        PixivRequestBuilder::following_remove(vec);
+        PixivRequestBuilder::following_remove(iter);
     }
 
     #[test]
